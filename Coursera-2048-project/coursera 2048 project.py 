@@ -1,0 +1,204 @@
+"""
+Clone of 2048 game.
+"""
+
+import poc_2048_gui
+import random 
+
+# Directions, DO NOT MODIFY
+UP = 1
+DOWN = 2
+LEFT = 3
+RIGHT = 4
+
+# Offsets for computing tile indices in each direction.
+# DO NOT MODIFY this dictionary.
+OFFSETS = {UP: (1, 0),
+           DOWN: (-1, 0),
+           LEFT: (0, 1),
+           RIGHT: (0, -1)}
+
+class TwentyFortyEight:
+    """
+    Class to run the game logic.
+    """
+
+    def __init__(self, grid_height, grid_width):
+        self._grid_height = grid_height
+        self._grid_width = grid_width 
+        # a dict that computes the starting cells in each movement direction 
+        self._move_dict = {UP: [(0, col) for col in range(self._grid_width)],
+                          DOWN: [(self._grid_height - 1, col) for col in range(self._grid_width)],
+                          RIGHT: [(row, self._grid_width - 1) for row in range(self._grid_height)],
+                          LEFT: [(row, 0) for row in range(self._grid_height)],
+                          }
+        
+        # Makes a starter grid of zeros. height X width 
+        self._grid_values = [[0 for dummy_col in range(self._grid_width)] 
+                            for dummy_row in range(self._grid_height)]
+        # a flag to see if a tile has moved. Used for logic to call new_tile in move
+        self._tile_move = False
+
+    def reset(self):
+        """
+        Reset the game so the grid is empty except for two
+        initial tiles.
+        """
+        # Makes a starter grid of zeros. height X width 
+        self._grid_values = [[0 for dummy_col in range(self._grid_width)] 
+                            for dummy_row in range(self._grid_height)]
+        
+        # calls self.new_tile to add tiles to grid
+        # calling it twice to get two new tiles on reset
+        # may need to change location of these calls to work better with gui 
+        self.new_tile()
+        self.new_tile()
+
+    def __str__(self):
+        """
+        Return a string representation of the grid for debugging.
+        """
+        return '\n'.join(str(row) for row in self._grid_values) 
+
+    def get_grid_height(self):
+        """
+        Get the height of the board.
+        """
+        # replace with your code
+        return self._grid_height
+
+    def get_grid_width(self):
+        """
+        Get the width of the board.
+        """
+        # replace with your code
+        return self._grid_width
+
+    def move(self, direction):
+        """
+        Move all tiles in the given direction and add
+        a new tile if any tiles moved.
+        """
+        # calls traverse grid func using direction to access info in two dicts 
+        self.traverse_grid(self._move_dict[direction], OFFSETS[direction], 
+                           len(self._move_dict[direction]))
+        # calls a new tile. You still need to check to see if a tile has moved 
+        # if not you end up in an endless loop with the way you wrote the 
+        # update board func
+        if self._tile_move: 
+            self.new_tile()
+            self._tile_move = False 
+            
+    def traverse_grid(self, starting_cells, direction, num_steps):
+        """ doc string for owl test """
+        
+        temp_values = []
+        temp_index = []
+        
+        for row, col in starting_cells:  
+            # unpacks the tuple for each item in starting cells dict 
+            # nested for loop makes a list of cells to check based on each starting cell
+            for step in range(num_steps):
+                temp_row = row + step * direction[0]
+                temp_col = col + step * direction[1]
+                temp_index.append((temp_row, temp_col))
+                temp_values.append(self._grid_values[temp_row][temp_col])
+            # calls merge on list of temp items to see how if they merge 
+            temp_values1 = self.merge(temp_values)
+            
+            if temp_values != temp_values1:
+                self._tile_move = True 
+            
+            for row, col in temp_index: 
+                self._grid_values[row][col] = temp_values1.pop(0)
+                
+            temp_index = []
+            temp_values = [] 
+
+    def new_tile(self):
+        """
+        Create a new tile in a randomly selected empty
+        square.  The tile should be 2 90% of the time and
+        4 10% of the time.
+        """
+        random_tile_value = random.choice(range(10))
+        tile_value = 0 
+        rand_cords = self.random_zero_tile()
+
+        if random_tile_value < 1: 
+            tile_value = 4
+        else: 
+            tile_value = 2 
+            
+        self.set_tile(rand_cords[0], rand_cords[1], tile_value) 
+              
+    def random_zero_tile(self):
+        """ doc string for owl test """ 
+        # returns a random tile that lies inside the grid 
+        random_cords = (random.choice(range(self._grid_height)),
+                        random.choice(range(self._grid_width)))
+        
+        # checks to see if random tile has a value of zero
+        # if so it returns the tile so a 2 or 4 can be placed there
+        # in new_tile(). If not zero at random_tile it looks again 
+        if self._grid_values[random_cords[0]][random_cords[1]] == 0:
+            return random_cords 
+        else:
+            # this will cause a endless loop if all tiles are not 0 
+            # add a check for this later or only call new_tile 
+            # if game is still in play
+            return self.random_zero_tile()
+
+    def set_tile(self, row, col, value):
+        """
+        Set the tile at position row, col to have the given value.
+        """
+        # replaces the value at the given position and returns 
+        grid_value = self._grid_values[row][col] = value 
+        return grid_value 
+
+    def get_tile(self, row, col):
+        """
+        Return the value of the tile at position row, col.
+        """
+        # replace with your code
+        value = self._grid_values[row][col]
+        return value 
+    
+    def merge(self, line):
+        """
+        Helper function that merges a single row or column in 2048
+        """
+        copy_list = line[:]
+        zeros = 0
+
+        try:
+            # Removes zeros, counts them and then adds
+            # the counted num of zeros to the end of copy_list 
+            for _ in line:
+                copy_list.remove(0)
+                zeros += 1
+        except ValueError:
+            for _ in range(zeros):
+                copy_list.append(0)
+        else:
+            for _ in range(zeros):
+                copy_list.append(0)
+
+        for index, _ in enumerate(copy_list):
+            try:
+                # If two tiles of the same value touch 
+                # it merges them, pops off the  2nd matching tile
+                # and appends a zero to the end
+                if copy_list[index] == copy_list[index+1]:
+                    copy_list[index] += copy_list[index]
+                    copy_list.pop(index+1)
+                    copy_list.append(0) 
+
+            except IndexError:
+                return copy_list  
+
+        return copy_list
+
+
+poc_2048_gui.run_gui(TwentyFortyEight(4, 4))
